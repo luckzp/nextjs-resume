@@ -1,29 +1,57 @@
-# Create T3 App
+# 简历生成器
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+这是一个基于 Next.js 的简历生成器应用，支持静态部署。
 
-## What's next? How do I make an app with this?
+## 功能特点
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+- 支持 Markdown 和普通模式编辑简历
+- 支持自定义主题颜色
+- 支持导出为 PDF
+- 完全客户端渲染，无需服务器
+- 可静态部署到任何静态网站托管服务
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+## 开发
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+```bash
+# 安装依赖
+npm install
 
-## Learn More
+# 启动开发服务器
+npm run dev
+```
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+## 构建静态网站
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+```bash
+# 构建静态网站
+npm run export
+```
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+构建完成后，静态文件将生成在 `out` 目录中。
 
-## How do I deploy this?
+## 部署
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+### 部署到 Vercel
+
+直接将代码推送到 GitHub 仓库，然后在 Vercel 中导入该仓库即可。Vercel 会自动识别 Next.js 项目并正确构建。
+
+### 部署到 Netlify
+
+1. 在 Netlify 中导入 GitHub 仓库
+2. 构建命令设置为 `npm run export`
+3. 发布目录设置为 `out`
+
+### 部署到 GitHub Pages
+
+1. 构建静态网站：`npm run export`
+2. 将 `out` 目录中的文件推送到 GitHub Pages 分支
+
+### 部署到其他静态网站托管服务
+
+只需将 `out` 目录中的文件上传到任何静态网站托管服务即可。
+
+## 注意事项
+
+- 此应用完全在客户端运行，所有数据存储在浏览器的 localStorage 中
+- 请记得定期导出您的简历数据，以防数据丢失
+- 静态部署版本不支持服务器端渲染功能
