@@ -1,9 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Button, Tooltip } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import { observer } from "mobx-react-lite";
+import { Button } from "../ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 import Image from "next/image";
 import {
   ENTER_DELAY,
@@ -11,24 +15,12 @@ import {
   DATA_MARKDOWN,
   DATA_ORIGIN,
 } from "../../utils/constant";
-import { useStore } from "../../stores";
-
-// Define styled components using Material UI's styled API
-const StrongButton = styled(Button)(({ theme }) => ({
-  padding: "6px 10px",
-  borderRadius: "0",
-  borderBottom: "1px solid #cccccc",
-  borderTop: "1px solid #cccccc",
-  borderRight: "1px solid #cccccc",
-  height: "100%",
-  minWidth: "auto",
-  "&.Mui-disabled": {
-    opacity: 0.3,
-  },
-}));
+import { useNavbarStore, useResumeStore, useHintStore } from "../../stores";
 
 const Strong = () => {
-  const { navbar, resume, hint } = useStore();
+  const navbar = useNavbarStore();
+  const resume = useResumeStore();
+  const hint = useHintStore();
   const [currentSelection, setCurrentSelection] = useState("");
 
   useEffect(() => {
@@ -130,28 +122,28 @@ const Strong = () => {
   };
 
   return (
-    <Tooltip
-      title="加粗"
-      placement="bottom"
-      enterDelay={ENTER_DELAY}
-      leaveDelay={LEAVE_DELAY}
-      disableFocusListener
-    >
-      <span>
-        {" "}
-        {/* Wrapper to handle disabled button tooltip */}
-        <StrongButton disabled={navbar.isDisabled} onClick={updateStyle}>
-          <Image
-            src="/icons/bold.svg"
-            alt="加粗"
-            width={24}
-            height={24}
-            priority
-          />
-        </StrongButton>
-      </span>
-    </Tooltip>
+    <TooltipProvider>
+      <Tooltip delayDuration={ENTER_DELAY}>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            disabled={navbar.isDisabled}
+            onClick={updateStyle}
+            className="min-w-0 rounded-none border-b border-r border-t border-[#cccccc] px-2.5 disabled:opacity-30"
+          >
+            <Image
+              src="/icons/bold.svg"
+              alt="加粗"
+              width={24}
+              height={24}
+              priority
+            />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>加粗</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 
-export default observer(Strong);
+export default Strong;

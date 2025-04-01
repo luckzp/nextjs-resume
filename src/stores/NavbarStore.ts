@@ -1,61 +1,52 @@
 'use client';
-import { makeObservable, observable, action } from "mobx";
+import { create } from "zustand";
 import { TEMPLATE_NUM, MARKDOWN_MODE } from "../utils/constant";
 
-class Navbar {
-  isDisabled = true;
-  themeColor = "#468CD4";
-  isExported = false;
-  isMarkdownMode = false;
-  templateNum = 1;
-  initialized = false;
-
-  constructor() {
-    makeObservable(this, {
-      isDisabled: observable,
-      themeColor: observable,
-      isExported: observable,
-      isMarkdownMode: observable,
-      templateNum: observable,
-      setBtnDisable: action,
-      setThemeColor: action,
-      setExported: action,
-      setMarkdownMode: action,
-      setTemplateNum: action,
-      initialize: action
-    });
-  }
-
-  setBtnDisable = (isDisabled: boolean) => {
-    this.isDisabled = isDisabled;
-  };
-
-  setThemeColor = (themeColor: string) => {
-    this.themeColor = themeColor;
-  };
-
-  setExported = (isExported: boolean) => {
-    this.isExported = isExported;
-  };
-
-  setMarkdownMode = (isMarkdownMode: boolean) => {
-    this.isMarkdownMode = isMarkdownMode;
-  };
-
-  setTemplateNum = (templateNum: number) => {
-    this.templateNum = templateNum;
-  };
-
-  initialize() {
-    if (this.initialized || typeof window === 'undefined') return;
-    
-    const templateNum = localStorage.getItem(TEMPLATE_NUM);
-    this.templateNum = templateNum ? parseInt(templateNum) : 1;
-    const markdownMode = localStorage.getItem(MARKDOWN_MODE);
-    this.isMarkdownMode = markdownMode === "true" ? true : false;
-    this.initialized = true;
-  }
+interface NavbarState {
+  isDisabled: boolean;
+  themeColor: string;
+  isExported: boolean;
+  isMarkdownMode: boolean;
+  templateNum: number;
+  setBtnDisable: (isDisabled: boolean) => void;
+  setThemeColor: (themeColor: string) => void;
+  setExported: (isExported: boolean) => void;
+  setMarkdownMode: (isMarkdownMode: boolean) => void;
+  setTemplateNum: (templateNum: number) => void;
+  initialize: () => void;
 }
 
-const store = new Navbar();
-export default store;
+const useNavbarStore = create<NavbarState>((set, get) => ({
+  isDisabled: true,
+  themeColor: "#468CD4",
+  isExported: false,
+  isMarkdownMode: false,
+  templateNum: 1,
+
+
+  setBtnDisable: (isDisabled) => set({ isDisabled }),
+  
+  setThemeColor: (themeColor) => set({ themeColor }),
+  
+  setExported: (isExported) => set({ isExported }),
+  
+  setMarkdownMode: (isMarkdownMode) => set({ isMarkdownMode }),
+  
+  setTemplateNum: (templateNum) => set({ templateNum }),
+  
+  initialize: () => {
+
+    
+    const templateNum = localStorage.getItem(TEMPLATE_NUM);
+    const parsedTemplateNum = templateNum ? parseInt(templateNum) : 1;
+    const markdownMode = localStorage.getItem(MARKDOWN_MODE);
+    const isMarkdownMode = markdownMode === "true";
+    
+    set({ 
+      templateNum: parsedTemplateNum, 
+      isMarkdownMode
+    });
+  }
+}));
+
+export default useNavbarStore;

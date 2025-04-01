@@ -1,58 +1,34 @@
 "use client";
 
-import React, { useState } from "react";
-import { Button, Tooltip, Menu, MenuItem } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import { observer } from "mobx-react-lite";
+import React from "react";
 import Image from "next/image";
 import * as cheerio from "cheerio";
+import { DATA_MARKDOWN, DATA_ORIGIN } from "../../utils/constant";
+import { useNavbarStore, useResumeStore } from "../../stores";
+import { cn } from "../../lib/utils";
+
 import {
-  ENTER_DELAY,
-  LEAVE_DELAY,
-  DATA_MARKDOWN,
-  DATA_ORIGIN,
-} from "../../utils/constant";
-import { useStore } from "../../stores";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu";
 
-// Define styled components using Material UI's styled API
-const WordButton = styled(Button)(({ theme }) => ({
-  padding: "6px 10px",
-  border: "1px solid #cccccc",
-  borderRadius: "0",
-  borderTopLeftRadius: "3px",
-  borderBottomLeftRadius: "3px",
-  height: "100%",
-  minWidth: "auto",
-  "&.Mui-disabled": {
-    opacity: 0.3,
-  },
-}));
-
-const StyledMenu = styled(Menu)({
-  "& .MuiPaper-root": {
-    top: "40px !important",
-  },
-});
-
-const StyledMenuItem = styled(MenuItem)({
-  fontSize: "0.95em",
-});
-
-const WordCorner = styled("img")({
-  position: "absolute",
-  bottom: 2,
-  right: 2,
-});
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../../components/ui/tooltip";
 
 const Word = () => {
-  const { navbar, resume, hint } = useStore();
-  const [sizeAnchorEl, setSizeAnchorEl] = useState<null | HTMLElement>(null);
-  const sizeOpen = Boolean(sizeAnchorEl);
+  const navbar = useNavbarStore();
+  const resume = useResumeStore();
 
   /**
    * Update text style
    */
-  const updateStyle = (flag: string) => (event: React.MouseEvent) => {
+  const updateStyle = (flag: string, event: React.MouseEvent) => {
     event.stopPropagation();
     const id = resume.choosenKey;
     const { isMarkdownMode } = navbar;
@@ -62,9 +38,6 @@ const Word = () => {
     } else {
       updateNormal(id, flag);
     }
-
-    // Hide font size menu
-    setSizeAnchorEl(null);
   };
 
   const updateMarkdown = (id: string, flag: string) => {
@@ -124,59 +97,54 @@ const Word = () => {
     element.setAttribute(DATA_ORIGIN, content);
   };
 
-  const openFontSizeMenu = (event: React.MouseEvent<HTMLElement>) => {
-    event.stopPropagation();
-    setSizeAnchorEl(event.currentTarget);
-  };
-
-  const closeFontSizeMenu = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    setSizeAnchorEl(null);
-  };
-
   return (
-    <div>
-      <StyledMenu
-        id="size-menu"
-        anchorEl={sizeAnchorEl}
-        open={sizeOpen}
-        onClose={closeFontSizeMenu}
-      >
-        <StyledMenuItem style={{ display: "none" }} />
-        <StyledMenuItem
-          onClick={updateStyle("p")}
-          style={{ display: navbar.isMarkdownMode ? "none" : "block" }}
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <button
+          className={cn(
+            "h-full items-center p-[6px_10px] text-[#555]",
+            "relative min-w-[auto] border border-[#cccccc]",
+            "rounded-l-[3px]",
+            "hover:bg-accent",
+            navbar.isDisabled && "opacity-30",
+          )}
+          disabled={navbar.isDisabled}
+          onClick={(e) => e.stopPropagation()}
+          aria-label="字号切换"
+        >
+          <Image
+            src="/icons/word.svg"
+            alt="字号切换"
+            width={24}
+            height={24}
+            priority
+          />
+          <Image
+            src="/icons/corner.svg"
+            alt="corner"
+            width={10}
+            height={10}
+            className="absolute bottom-[2px] right-[2px]"
+          />
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="start" className="mt-1 text-[0.95em]">
+        <DropdownMenuItem
+          onClick={(e) => updateStyle("p", e)}
+          className={cn(navbar.isMarkdownMode && "hidden")}
         >
           普通字号
-        </StyledMenuItem>
-        <StyledMenuItem onClick={updateStyle("h1")}>一级标题</StyledMenuItem>
-        <StyledMenuItem onClick={updateStyle("h2")}>二级标题</StyledMenuItem>
-      </StyledMenu>
-
-      <Tooltip
-        title="字号切换"
-        placement="bottom"
-        enterDelay={ENTER_DELAY}
-        leaveDelay={LEAVE_DELAY}
-        disableFocusListener
-      >
-        <span>
-          {" "}
-          {/* Wrapper to handle disabled button tooltip */}
-          <WordButton disabled={navbar.isDisabled} onClick={openFontSizeMenu}>
-            <Image
-              src="/icons/word.svg"
-              alt="字号切换"
-              width={24}
-              height={24}
-              priority
-            />
-            <WordCorner src="/icons/corner.svg" alt="corner" />
-          </WordButton>
-        </span>
-      </Tooltip>
-    </div>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={(e) => updateStyle("h1", e)}>
+          一级标题
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={(e) => updateStyle("h2", e)}>
+          二级标题
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
-export default observer(Word);
+export default Word;

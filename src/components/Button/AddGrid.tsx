@@ -1,87 +1,69 @@
 "use client";
 
-import React, { useState } from "react";
-import { styled } from "@mui/material/styles";
-import Button from "@mui/material/Button";
-import Tooltip from "@mui/material/Tooltip";
-import Snackbar from "@mui/material/Snackbar";
+import React from "react";
 import Image from "next/image";
-import { observer } from "mobx-react-lite";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 import { ENTER_DELAY, LEAVE_DELAY, ITEM_MAX_NUMS } from "../../utils/constant";
-import Hint from "../Basic/Hint";
-import { useStore } from "../../stores";
-
-// Styled components
-const StyledButton = styled(Button)(({ theme }) => ({
-  padding: "6px 8px",
-  borderRadius: "0",
-  borderBottom: "1px solid #cccccc",
-  borderTop: "1px solid #cccccc",
-  borderRight: "1px solid #cccccc",
-  height: "100%",
-  minWidth: "auto",
-}));
+import useResumeStore from "../../stores/ResumeStore";
+import useNavbarStore from "../../stores/NavbarStore";
 
 /**
  * AddGrip Component - Allows adding a new grid to the resume layout
  */
-const AddGrip = observer(() => {
-  const [isHintOpen, setIsHintOpen] = useState(false);
-  const { resume, navbar } = useStore();
+const AddGrip = () => {
+  const { toast } = useToast();
+  const layout = useResumeStore((state) => state.layout);
+  const addGrid = useResumeStore((state) => state.addGrid);
+  const isMarkdownMode = useNavbarStore((state) => state.isMarkdownMode);
+  const setBtnDisable = useNavbarStore((state) => state.setBtnDisable);
 
   const handleAddGrid = (event: React.MouseEvent) => {
     event.stopPropagation();
-    if (resume.layout.length >= ITEM_MAX_NUMS) {
-      setIsHintOpen(true);
+    if (layout.length >= ITEM_MAX_NUMS) {
+      toast({
+        variant: "destructive",
+        title: "网格过多",
+        duration: 5000,
+      });
     } else {
-      resume.addGrid(navbar.isMarkdownMode);
-      navbar.setBtnDisable(false);
+      addGrid(isMarkdownMode);
+      setBtnDisable(false);
     }
-  };
-
-  const handleCloseHint = (
-    event?: React.SyntheticEvent | Event,
-    reason?: string,
-  ) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setIsHintOpen(false);
   };
 
   return (
-    <div>
-      <Tooltip
-        title="新增网格"
-        placement="bottom"
-        enterDelay={ENTER_DELAY}
-        leaveDelay={LEAVE_DELAY}
-        disableFocusListener
-      >
-        <StyledButton onClick={handleAddGrid}>
-          <Image
-            src="/icons/add.svg"
-            alt="Add grid"
-            width={24}
-            height={24}
-            priority
-          />
-        </StyledButton>
+    <TooltipProvider delayDuration={ENTER_DELAY}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            onClick={handleAddGrid}
+            variant="outline"
+            size="icon"
+            className=" min-w-0 rounded-none border-b border-r border-t border-[#cccccc] px-2 py-1.5"
+          >
+            <Image
+              src="/icons/add.svg"
+              alt="Add grid"
+              width={24}
+              height={24}
+              priority
+            />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p>新增网格</p>
+        </TooltipContent>
       </Tooltip>
-      <Snackbar
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
-        }}
-        open={isHintOpen}
-        autoHideDuration={5000}
-        onClose={handleCloseHint}
-      >
-        <Hint onClose={handleCloseHint} variant="error" message="网格过多" />
-      </Snackbar>
-    </div>
+    </TooltipProvider>
   );
-});
+};
 
 export default AddGrip;

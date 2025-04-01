@@ -6,136 +6,95 @@ import Navbar from "@/components/Navbar";
 import Resume from "@/components/Resume";
 import NormalResume from "@/components/NormalResume";
 import HintDialog from "@/components/Hint";
-import { observer } from "mobx-react-lite";
+import useNavbarStore from "@/stores/NavbarStore";
+import useResumeStore from "@/stores/ResumeStore";
+import Dialog from "@/components/Dialog";
+const HomePage = () => {
+  // 使用各个store的hooks获取状态和方法
+  const isExported = useNavbarStore((state) => state.isExported);
+  const isMarkdownMode = useNavbarStore((state) => state.isMarkdownMode);
+  const setExported = useNavbarStore((state) => state.setExported);
+  const initialize = useNavbarStore((state) => state.initialize);
+  const setBtnDisable = useNavbarStore((state) => state.setBtnDisable);
 
-// Wrap the component with observer
-const HomePage = observer(() => {
-  // Handle print related effects on the client side
+  const updateResume = useResumeStore((state) => state.updateResume);
+  const updateNormalResume = useResumeStore(
+    (state) => state.updateNormalResume,
+  );
+  const setChoosen = useResumeStore((state) => state.setChoosen);
+
+  // 在组件挂载时初始化所有必要的 store
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      // Handle after print
-      const afterPrint = () => {
-        const { useStore } = require("@/stores");
-        const { navbar } = useStore();
-        navbar.setExported(false);
-      };
-
-      // Prevent default drag
-      const preventDrag = (e: DragEvent) => {
-        e.preventDefault();
-      };
-
-      // Handle window click
-      const handleWindowClick = () => {
-        console.log("window click");
-        const { useStore } = require("@/stores");
-        const { navbar, resume } = useStore();
-
-        if (navbar.isMarkdownMode) {
-          resume.updateResume();
-          navbar.setBtnDisable(true);
-        } else {
-          resume.updateNormalResume();
-          navbar.setBtnDisable(true);
-        }
-      };
-
-      // Handle beforeunload
-      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-        const message = "数据目前存储在浏览器中，记得保存到本地备份！";
-        e.preventDefault();
-        e.returnValue = message;
-        return message;
-      };
-
-      // Add event listeners
-      window.onafterprint = afterPrint;
-      window.ondragstart = preventDrag;
-      window.onclick = handleWindowClick;
-      window.onbeforeunload = handleBeforeUnload;
-
-      // Clean up function
-      return () => {
-        window.onafterprint = null;
-        window.ondragstart = null;
-        window.onclick = null;
-        window.onbeforeunload = null;
-      };
-    }
+    // 初始化 store
+    initialize();
   }, []);
 
-  // Initialize NavbarStore to ensure markdownMode is set from localStorage
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const { useStore } = require("@/stores");
-      const { navbar } = useStore();
-      // Ensure NavbarStore is initialized before rendering
-      navbar.initialize();
-      console.log(
-        "NavbarStore initialized, markdownMode:",
-        navbar.isMarkdownMode,
-      );
+  const handleWindowClick = () => {
+    console.log("window click");
+    if (isMarkdownMode) {
+      updateResume();
+    } else {
+      updateNormalResume();
     }
-  }, []);
+    setBtnDisable(true);
+  };
 
-  // 监听导出状态变化并触发打印
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      // Initialize store references
-      const { useStore } = require("@/stores");
-      const store = useStore();
+    // 设置事件监听器
+    const afterPrint = () => setExported(false);
 
-      // Create a MobX reaction to watch for changes to isExported
-      const disposer = require("mobx").reaction(
-        () => store.navbar.isExported,
-        (isExported: boolean) => {
-          console.log("Export state changed to:", isExported);
-          if (isExported) {
-            console.log("Attempting to print...");
-            store.resume.setChoosen();
-            window.print();
-          }
-        },
-      );
+    const preventDrag = (e: DragEvent) => e.preventDefault();
 
-      // Clean up the reaction when component unmounts
-      return () => {
-        disposer();
-      };
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const message = "数据目前存储在浏览器中，记得保存到本地备份！";
+      e.preventDefault();
+      e.returnValue = message;
+      return message;
+    };
+
+    // 添加事件监听器
+    window.onafterprint = afterPrint;
+    window.ondragstart = preventDrag;
+    window.onbeforeunload = handleBeforeUnload;
+  }, [isMarkdownMode]);
+
+  // 使用普通 useEffect 监听导出状态变化并触发打印
+  useEffect(() => {
+    if (isExported) {
+      console.log("Attempting to print...");
+      setChoosen();
+      window.print();
     }
-  }, []); // Empty dependency array to run only on mount
-
-  // Get store for rendering - moved inside the component
-  const { useStore } = require("@/stores");
-  const { navbar, resume } = useStore();
+  }, [isExported, setChoosen]);
 
   return (
     <main className="flex w-full justify-center">
       {/* Navbar section */}
       <div
         className="fixed z-[999] w-full"
-        style={{ display: navbar.isExported ? "none" : "block" }}
+        style={{ display: isExported ? "none" : "block" }}
       >
         <Navbar />
       </div>
 
       {/* Resume section */}
       <div
-        className="my-[80px] box-content flex h-[264mm] w-[188mm] overflow-auto break-all bg-white p-[16mm_11mm] shadow-md print:my-0 print:h-auto print:w-full print:overflow-visible print:border-none print:shadow-none"
+        className="box-content flex h-[264mm] w-[188mm] overflow-auto break-all bg-white shadow-md"
         style={{
-          border: navbar.isExported ? "none" : "1px solid black",
-          boxShadow: navbar.isExported ? "none" : "0px 0px 4px",
-          margin: navbar.isExported ? "0px auto" : "80px auto",
-          padding: navbar.isExported ? "0mm" : "16mm 11mm",
+          border: isExported ? "none" : "1px solid black",
+          boxShadow: isExported ? "none" : "0px 0px 4px",
+          margin: isExported ? "0px auto" : "80px auto",
+          padding: isExported ? "0mm" : "16mm 11mm",
         }}
+        onClick={handleWindowClick}
       >
-        {navbar.isMarkdownMode ? <Resume /> : <NormalResume />}
+        {isMarkdownMode ? <Resume /> : <NormalResume />}
       </div>
 
-      {/* Dialogs */}
       <HintDialog />
+      <Dialog />
     </main>
   );
-});
+};
 
 export default HomePage;

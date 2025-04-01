@@ -1,9 +1,13 @@
 "use client";
 
 import React from "react";
-import { Button, Tooltip } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import { observer } from "mobx-react-lite";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
+import { Button } from "../ui/button";
 import Image from "next/image";
 import * as cheerio from "cheerio";
 import {
@@ -12,32 +16,18 @@ import {
   DATA_MARKDOWN,
   DATA_ORIGIN,
 } from "../../utils/constant";
-import { useStore } from "../../stores";
-
-// Define styled components using Material UI's styled API
-const BlockquoteButton = styled(Button)(({ theme }) => ({
-  padding: "6px 10px",
-  borderRadius: "0",
-  borderBottom: "1px solid #cccccc",
-  borderTop: "1px solid #cccccc",
-  borderRight: "1px solid #cccccc",
-  height: "100%",
-  minWidth: "auto",
-  "&.Mui-disabled": {
-    opacity: 0.3,
-  },
-}));
+import { useNavbarStore, useResumeStore } from "../../stores";
 
 const Blockquote = () => {
-  const { navbar, resume } = useStore();
+  const { isDisabled, isMarkdownMode } = useNavbarStore();
+  const { choosenKey } = useResumeStore();
 
   /**
    * Updates the style based on the current mode (markdown or normal)
    */
   const updateStyle = (event: React.MouseEvent) => {
     event.stopPropagation();
-    const id = resume.choosenKey;
-    const { isMarkdownMode } = navbar;
+    const id = choosenKey;
 
     if (isMarkdownMode) {
       updateMarkdown(id);
@@ -82,17 +72,14 @@ const Blockquote = () => {
 
     let newContent: string;
 
-    if ($("section blockquote").html()) {
-      // If already has a blockquote, use its content
-      const sectionTitle = $("section blockquote").html() || "";
+    if ($("section u").html()) {
+      // If already has an underline, use its content
+      const sectionTitle = $("section u").html() || "";
       newContent = section.replace(sectionInner, `${sectionTitle}`);
     } else {
-      // Create a new blockquote with the current content
+      // Create a new underline with the current content
       const sectionTitle = $("section").html() || "";
-      newContent = section.replace(
-        sectionInner,
-        `<blockquote>${sectionTitle}</blockquote>`,
-      );
+      newContent = section.replace(sectionInner, `<u>${sectionTitle}</u>`);
     }
 
     // Update HTML content
@@ -110,28 +97,31 @@ const Blockquote = () => {
   };
 
   return (
-    <Tooltip
-      title="引用"
-      placement="bottom"
-      enterDelay={ENTER_DELAY}
-      leaveDelay={LEAVE_DELAY}
-      disableFocusListener
-    >
-      <span>
-        {" "}
-        {/* Wrapper to handle disabled button tooltip */}
-        <BlockquoteButton disabled={navbar.isDisabled} onClick={updateStyle}>
-          <Image
-            src="/icons/underline.svg"
-            alt="引用"
-            width={24}
-            height={24}
-            priority
-          />
-        </BlockquoteButton>
-      </span>
-    </Tooltip>
+    <TooltipProvider delayDuration={ENTER_DELAY}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className=" rounded-none border-b border-r border-t border-[#cccccc] p-0 disabled:opacity-30"
+            disabled={isDisabled}
+            onClick={updateStyle}
+          >
+            <Image
+              src="/icons/underline.svg"
+              alt="下划线"
+              width={24}
+              height={24}
+              priority
+            />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p>下划线</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 
-export default observer(Blockquote);
+export default Blockquote;

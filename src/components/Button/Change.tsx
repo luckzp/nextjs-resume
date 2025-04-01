@@ -1,112 +1,76 @@
 "use client";
-import React, { useState } from "react";
-import Button from "@mui/material/Button";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-import Tooltip from "@mui/material/Tooltip";
-import { styled } from "@mui/material/styles";
+import React from "react";
 import Image from "next/image";
-import { observer } from "mobx-react-lite";
-import { useStore } from "../../stores";
+import useNavbarStore from "../../stores/NavbarStore";
+import useDialogStore from "../../stores/DialogStore";
 import { TEMPLATE_NUM } from "../../utils/constant";
+import { cn } from "../../lib/utils";
+import { Button } from "../../components/ui/button";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu";
 
 const ENTER_DELAY = 200;
 const LEAVE_DELAY = 0;
 
-const StyledButton = styled(Button)(({ theme }) => ({
-  padding: "0px 10px",
-  border: "1px solid #cccccc",
-  borderRadius: "0",
-  borderTopLeftRadius: "3px",
-  borderBottomLeftRadius: "3px",
-  height: "100%",
-  color: "#555",
-  minWidth: "auto",
-}));
-
-const StyledMenuItem = styled(MenuItem)({
-  fontSize: "0.95em",
-});
-
-const Change: React.FC = observer(() => {
-  const { navbar } = useStore();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const open = Boolean(anchorEl);
-
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    setAnchorEl(null);
-  };
-
-  const handleTemplateSwitch = (value: number) => (event: React.MouseEvent) => {
-    event.stopPropagation();
-    navbar.setTemplateNum(value);
+const Change: React.FC = () => {
+  // 使用zustand hooks
+  const templateNum = useNavbarStore((state) => state.templateNum);
+  const setTemplateNum = useNavbarStore((state) => state.setTemplateNum);
+  const setChangeOpened = useDialogStore((state) => state.setChangeOpened);
+  const handleTemplateSwitch = (value: number) => {
+    setTemplateNum(value);
     localStorage.setItem(TEMPLATE_NUM, value.toString());
-    setAnchorEl(null);
+    setChangeOpened(true);
   };
 
-  const handleChangeDialogOpen = () => {
-    setIsDialogOpen(true);
-    setAnchorEl(null);
-  };
-
-  const message =
-    navbar.templateNum === 0 ? "自定义" : `模板${navbar.templateNum}`;
+  const message = templateNum === 0 ? "自定义" : `模板${templateNum}`;
 
   return (
-    <div>
-      <Tooltip
-        title="切换模板"
-        placement="bottom"
-        enterDelay={ENTER_DELAY}
-        leaveDelay={LEAVE_DELAY}
-        disableFocusListener
-      >
-        <StyledButton onClick={handleClick}>
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "relative min-w-[auto] text-[#555]",
+            "rounded-l-[3px] rounded-r-none",
+          )}
+          aria-label="切换模板"
+        >
           {message}
           <Image
             src="/icons/corner.svg"
             alt="corner"
             width={10}
             height={10}
-            style={{
-              position: "absolute",
-              bottom: 2,
-              right: 2,
-            }}
+            className="absolute bottom-[2px] right-[2px]"
           />
-        </StyledButton>
-      </Tooltip>
+        </Button>
+      </DropdownMenuTrigger>
 
-      <Menu
-        id="template-menu"
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        sx={{
-          "& .MuiPaper-root": {
-            top: "40px !important",
-          },
-        }}
-        disableScrollLock={true}
-      >
-        <StyledMenuItem sx={{ display: "none" }} />
-        <StyledMenuItem onClick={handleTemplateSwitch(1)}>模板1</StyledMenuItem>
-        <StyledMenuItem onClick={handleTemplateSwitch(2)}>模板2</StyledMenuItem>
-        <StyledMenuItem onClick={handleTemplateSwitch(3)}>模板3</StyledMenuItem>
-        <StyledMenuItem onClick={handleTemplateSwitch(4)}>模板4</StyledMenuItem>
-        <StyledMenuItem onClick={handleTemplateSwitch(0)}>
+      <DropdownMenuContent align="start" className="mt-1 text-[0.95em]">
+        <DropdownMenuItem onClick={() => handleTemplateSwitch(1)}>
+          模板1
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleTemplateSwitch(2)}>
+          模板2
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleTemplateSwitch(3)}>
+          模板3
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleTemplateSwitch(4)}>
+          模板4
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleTemplateSwitch(0)}>
           自定义
-        </StyledMenuItem>
-      </Menu>
-    </div>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
-});
+};
 
 export default Change;

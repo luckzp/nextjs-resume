@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import { observer } from "mobx-react-lite";
-import GridLayout from "react-grid-layout";
+import dynamic from "next/dynamic";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import MarkdownIt from "markdown-it";
@@ -10,125 +9,25 @@ import MarkdownIt from "markdown-it";
 import MarkdownItIns from "markdown-it-ins";
 // @ts-ignore
 import MarkdownItMark from "markdown-it-mark";
-import { makeStyles } from "@mui/styles";
 import { DATA_ORIGIN } from "../utils/constant";
-import { useStore } from "../stores";
+import useResumeStore from "../stores/ResumeStore";
+import useNavbarStore from "../stores/NavbarStore";
 
-// Define the CSS styles for the component using MUI's makeStyles
-const useStyles = makeStyles(() => ({
-  hStart: {
-    justifyContent: "flex-start",
-  },
-  hCenter: {
-    justifyContent: "center",
-  },
-  hEnd: {
-    justifyContent: "flex-end",
-  },
-  vStart: {
-    alignItems: "flex-start",
-  },
-  vCenter: {
-    alignItems: "center",
-  },
-  vEnd: {
-    alignItems: "flex-end",
-  },
-  layout: {
-    width: "188mm",
-    // height: "200vh",
-    // margin: "16mm 11mm",
-    "& div": {
-      display: "flex",
-      flexDirection: "column-reverse",
-      "& mark": {
-        color: "rgb(70,140,212)",
-        backgroundColor: "rgba(0,0,0,0)",
-        "& hr": {
-          height: "100%",
-          border: "0",
-          color: "black",
-          margin: 0,
-        },
-      },
-      "& ins": {
-        textDecoration: "none",
-        width: "100%",
-        "& hr": {
-          width: "100%",
-          border: "0",
-          color: "black",
-          margin: 0,
-        },
-      },
-      "& section": {
-        height: "100%",
-        display: "flex",
-        fontSize: "3.8mm",
-        lineHeight: "24px",
-        overflow: "hidden",
-        width: "100%",
-      },
-      "& h1": {
-        margin: "0",
-        fontSize: "7mm",
-        "& p": {
-          fontSize: "7mm",
-        },
-      },
-      "& h2": {
-        margin: "0",
-        fontSize: "4mm",
-        fontWeight: "bold",
-        "& p": {
-          fontSize: "4mm",
-        },
-      },
-      "& p": {
-        fontSize: "3.8mm",
-        margin: "0",
-        lineHeight: "24px",
-      },
-      "& a": {
-        fontSize: "3.8mm",
-        textDecoration: "none",
-        fontWeight: "bold",
-      },
-      "& strong": {
-        width: "100%",
-      },
-      "& blockquote": {
-        margin: "0",
-        "&:before": {
-          content: "''",
-          position: "absolute",
-          bottom: "-1px",
-          background: "#494949",
-          width: "100%",
-          height: "1px",
-        },
-      },
-      "& ul": {
-        fontSize: "3.8mm",
-        margin: "0",
-        paddingInlineStart: "20px",
-        lineHeight: "24px",
-        width: "100%",
-      },
-      "& code": {
-        width: "100%",
-      },
-      "& img": {
-        width: "100%",
-      },
-    },
-  },
-}));
+// Dynamically import GridLayout with SSR disabled
+const GridLayout = dynamic(() => import("react-grid-layout"), { ssr: false });
 
 // Define the NormalResume component
-const NormalResume: React.FC = observer(() => {
-  const classes = useStyles();
-  const { resume, navbar } = useStore();
+const NormalResume: React.FC = () => {
+  const layout = useResumeStore((state) => state.layout);
+  const status = useResumeStore((state) => state.status);
+  const isAdded = useResumeStore((state) => state.isAdded);
+  const choosenKey = useResumeStore((state) => state.choosenKey);
+
+  // 获取需要的 navbar 状态
+  const setBtnDisable = useNavbarStore((state) => state.setBtnDisable);
+
+  const resume = useResumeStore();
+  const navbar = useNavbarStore();
   const mdRef = useRef<MarkdownIt | null>(null);
 
   // Initialize Markdown parser
@@ -139,25 +38,24 @@ const NormalResume: React.FC = observer(() => {
       md.use(MarkdownItMark);
       mdRef.current = md;
     }
+    resume.initialize();
   }, []);
 
   // Handle clicking on a grid item
   const handleClick = (event: React.MouseEvent) => {
-    console.log("normal resume handleClick");
     event.stopPropagation();
 
     const target = event.target as HTMLElement;
     const id = target.id ? target.id : (target.offsetParent as HTMLElement).id;
-    const { choosenKey } = resume;
-    const { isResizable } = resume.status;
 
     // Don't process the click event if in content edit state or grid state
-    if (id === choosenKey || isResizable) {
+    if (id === choosenKey || status.isResizable) {
       return;
     }
 
     // Different item clicked
     if (choosenKey) {
+      console.log(choosenKey);
       resume.updateNormalResume();
     }
 
@@ -214,65 +112,6 @@ const NormalResume: React.FC = observer(() => {
     resume.updateLayout(layout);
   };
 
-  // Apply theme color to elements via CSS
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-
-    // Helper function to safely apply styles
-    const applyStyle = (index: number, property: string, value: string) => {
-      try {
-        if (
-          document.styleSheets[0] &&
-          document.styleSheets[0].cssRules &&
-          document.styleSheets[0].cssRules[index] &&
-          (document.styleSheets[0].cssRules[index] as CSSStyleRule).style
-        ) {
-          (
-            document.styleSheets[0].cssRules[index] as CSSStyleRule
-          ).style.setProperty(property, value);
-        }
-      } catch (error) {
-        console.error(
-          `Failed to set style property ${property} at index ${index}:`,
-          error,
-        );
-      }
-    };
-
-    // Set theme color
-    applyStyle(0, "color", navbar.themeColor);
-
-    // Horizontal lines
-    applyStyle(1, "background-color", navbar.themeColor);
-    applyStyle(1, "height", "3px");
-
-    applyStyle(2, "background-color", "black");
-    applyStyle(2, "height", "3px");
-
-    applyStyle(3, "background-color", navbar.themeColor);
-    applyStyle(3, "height", "1px");
-
-    applyStyle(4, "background-color", "black");
-    applyStyle(4, "height", "1px");
-
-    // Vertical lines
-    applyStyle(5, "background-color", navbar.themeColor);
-    applyStyle(5, "width", "3px");
-
-    applyStyle(6, "background-color", "black");
-    applyStyle(6, "width", "3px");
-
-    applyStyle(7, "background-color", navbar.themeColor);
-    applyStyle(7, "width", "1px");
-
-    applyStyle(8, "background-color", "black");
-    applyStyle(8, "width", "1px");
-
-    // Link underline
-    applyStyle(9, "border-bottom", `1px solid ${navbar.themeColor}`);
-    applyStyle(9, "color", navbar.themeColor);
-  }, [navbar.themeColor]);
-
   // Handle newly added grid item styling
   useEffect(() => {
     if (resume.isAdded) {
@@ -291,21 +130,21 @@ const NormalResume: React.FC = observer(() => {
       resume.switchStyle(id, true);
       resume.setAdded(false);
     }
-  }, [resume.isAdded, resume.choosenKey]);
+  }, [resume.isAdded]);
 
   return (
     <GridLayout
-      className={classes.layout}
-      layout={resume.layout}
+      className="resume-layout w-[188mm]"
+      layout={layout}
       cols={24}
       rowHeight={22}
       width={710}
       margin={[10, 2]}
-      isResizable={resume.status.isResizable}
-      isDraggable={resume.status.isDraggable}
+      isResizable={status.isResizable}
+      isDraggable={status.isDraggable}
       onLayoutChange={handleLayoutChange}
     >
-      {resume.layout.map((item) => (
+      {layout.map((item) => (
         <div
           id={item.i}
           key={item.i}
@@ -314,7 +153,8 @@ const NormalResume: React.FC = observer(() => {
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           onInput={handleInput}
-          style={resume.status.gridStyle}
+          style={status.gridStyle}
+          className="resume-content"
           suppressContentEditableWarning={true}
         >
           <section dangerouslySetInnerHTML={{ __html: item.origin || "" }} />
@@ -322,6 +162,6 @@ const NormalResume: React.FC = observer(() => {
       ))}
     </GridLayout>
   );
-});
+};
 
 export default NormalResume;

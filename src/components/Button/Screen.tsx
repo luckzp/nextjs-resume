@@ -1,31 +1,17 @@
-import React, { useState, MouseEvent } from "react";
-import { Button, Tooltip } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import clsx from "clsx";
-import Image from "next/image";
-import { observer } from "mobx-react-lite";
+import React, { useState, MouseEvent, useEffect } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
+import { Button } from "../ui/button";
+import { cn } from "../../lib/utils";
+import { Maximize2 } from "lucide-react";
 import { fullScreen, exitFullScreen } from "../../utils/helper";
 import { ENTER_DELAY, LEAVE_DELAY } from "../../utils/constant";
-import screenIcon from "../../../public/icons/screen.svg";
 
-// Styled components
-const ScreenButton = styled(Button)(({ theme }) => ({
-  padding: "6px 10px",
-  borderRadius: "0",
-  borderBottom: "1px solid #cccccc",
-  borderTop: "1px solid #cccccc",
-  borderRight: "1px solid #cccccc",
-  minWidth: "auto",
-  "&.active": {
-    background: "rgba(56,132,255,.1)",
-  },
-}));
-
-interface ScreenProps {
-  resume?: any; // Type this properly based on your actual store structure
-}
-
-const Screen: React.FC<ScreenProps> = observer(({ resume }) => {
+const Screen = () => {
   const [isScreenActive, setIsScreenActive] = useState(false);
 
   const toggleScreen = (event: MouseEvent<HTMLButtonElement>) => {
@@ -33,8 +19,7 @@ const Screen: React.FC<ScreenProps> = observer(({ resume }) => {
     setIsScreenActive(!isScreenActive);
   };
 
-  // Effect for fullscreen toggle
-  React.useEffect(() => {
+  useEffect(() => {
     if (isScreenActive) {
       fullScreen();
     } else {
@@ -43,21 +28,27 @@ const Screen: React.FC<ScreenProps> = observer(({ resume }) => {
   }, [isScreenActive]);
 
   return (
-    <Tooltip
-      title="全屏"
-      placement="bottom"
-      enterDelay={ENTER_DELAY}
-      leaveDelay={LEAVE_DELAY}
-      disableFocusListener
-    >
-      <ScreenButton
-        className={clsx({ active: isScreenActive })}
-        onClick={toggleScreen}
-      >
-        <Image src={screenIcon} alt="fullscreen" width={24} height={24} />
-      </ScreenButton>
-    </Tooltip>
+    <TooltipProvider delayDuration={ENTER_DELAY}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className={cn(
+              "rounded-none border-b border-r border-t border-[#cccccc] p-0",
+              isScreenActive && "bg-blue-50",
+            )}
+            onClick={toggleScreen}
+          >
+            <Maximize2 className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p>全屏</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
-});
+};
 
 export default Screen;

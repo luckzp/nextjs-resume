@@ -1,11 +1,8 @@
+"use client";
+
 import React, { useState } from "react";
-import { useTheme } from "@mui/material/styles";
-import Tooltip from "@mui/material/Tooltip";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-import Button from "@mui/material/Button";
-import * as cheerio from "cheerio";
 import Image from "next/image";
+import * as cheerio from "cheerio";
 
 import {
   ENTER_DELAY,
@@ -13,15 +10,25 @@ import {
   DATA_MARKDOWN,
   DATA_ORIGIN,
 } from "../../utils/constant";
+import { useNavbarStore, useResumeStore } from "../../stores";
 
-import { observer } from "mobx-react-lite";
-import { useStore } from "../../stores";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 
-const Align: React.FC = observer(() => {
-  const { resume, navbar } = useStore();
-  const [alignAnchorEl, setAlignAnchorEl] = useState<null | HTMLElement>(null);
-  const alignOpen = Boolean(alignAnchorEl);
-  const theme = useTheme();
+const Align: React.FC = () => {
+  const { choosenKey } = useResumeStore();
+  const { isDisabled, isMarkdownMode } = useNavbarStore();
 
   /**
    * Update alignment style
@@ -29,17 +36,13 @@ const Align: React.FC = observer(() => {
   const updateStyle =
     (flag: string) => (event: React.MouseEvent<HTMLElement>) => {
       event.stopPropagation();
-      const id = resume.choosenKey;
-      const { isMarkdownMode } = navbar;
+      const id = choosenKey;
 
       if (isMarkdownMode) {
         updateMarkdown(id, flag);
       } else {
         updateNormal(id, flag);
       }
-
-      // Close the alignment menu
-      setAlignAnchorEl(null);
     };
 
   const updateMarkdown = (id: string, flag: string) => {
@@ -70,126 +73,87 @@ const Align: React.FC = observer(() => {
 
   const updateNormal = (id: string, flag: string) => {
     const element = document.getElementById(id);
-    if (!element) return;
+    if (!element) {
+      console.error(`Element with id ${id} not found`);
+      return;
+    }
 
+    // 获取原始内容
     let content = element.getAttribute(DATA_ORIGIN) || "";
 
-    const $ = cheerio.load(content, {
+    // 使用cheerio解析内容
+    let $ = cheerio.load(content, {
       xmlMode: true,
     });
 
+    // 获取内容并创建带对齐类的新section
     const sectionInner = $("section").html() || "";
     content = `<section class="${flag}">${sectionInner}</section>`;
 
+    // 更新DOM
     if (element.childNodes[0]) {
       (element.childNodes[0] as HTMLElement).innerHTML = content;
+    } else {
+      element.innerHTML = content;
     }
+    console.log(content);
+    // 保存更新后的内容
     element.setAttribute(DATA_ORIGIN, content);
   };
 
-  const openAlignMenu = (event: React.MouseEvent<HTMLElement>) => {
-    event.stopPropagation();
-    setAlignAnchorEl(event.currentTarget);
-  };
-
-  const closeAlignMenu = (event: React.MouseEvent<HTMLElement>) => {
-    event.stopPropagation();
-    setAlignAnchorEl(null);
-  };
-
-  // Define styles as objects
-  const styles = {
-    menuItem: {
-      fontSize: "0.95em",
-    },
-    menu: {
-      top: "40px !important",
-    },
-    btn: {
-      padding: "6px 10px",
-      borderRadius: "0",
-      borderBottom: "1px solid #cccccc",
-      borderTop: "1px solid #cccccc",
-      borderRight: "1px solid #cccccc",
-      height: "100%",
-    },
-    minWidth: {
-      minWidth: "auto",
-    },
-    opacity: {
-      opacity: 0.3,
-    },
-    corner: {
-      position: "absolute" as const,
-      bottom: 2,
-      right: 2,
-    },
-  };
-
   return (
-    <div>
-      <Menu
-        id="align-menu"
-        anchorEl={alignAnchorEl}
-        open={alignOpen}
-        onClose={closeAlignMenu}
-        sx={styles.menu}
-      >
-        <MenuItem sx={styles.menuItem} style={{ display: "none" }} />
-        <MenuItem sx={styles.menuItem} onClick={updateStyle("hStart")}>
-          左对齐
-        </MenuItem>
-        <MenuItem sx={styles.menuItem} onClick={updateStyle("hCenter")}>
-          水平居中
-        </MenuItem>
-        <MenuItem sx={styles.menuItem} onClick={updateStyle("hEnd")}>
-          右对齐
-        </MenuItem>
-        <MenuItem sx={styles.menuItem} onClick={updateStyle("vStart")}>
-          上对齐
-        </MenuItem>
-        <MenuItem sx={styles.menuItem} onClick={updateStyle("vCenter")}>
-          垂直居中
-        </MenuItem>
-        <MenuItem sx={styles.menuItem} onClick={updateStyle("vEnd")}>
-          下对齐
-        </MenuItem>
-      </Menu>
-      <Tooltip
-        title="对齐"
-        placement="bottom"
-        enterDelay={ENTER_DELAY}
-        leaveDelay={LEAVE_DELAY}
-        disableFocusListener
-      >
-        <span>
-          <Button
-            disabled={navbar.isDisabled}
-            onClick={openAlignMenu}
-            sx={{
-              ...styles.btn,
-              ...(navbar.isDisabled ? styles.opacity : {}),
-              ...styles.minWidth,
-            }}
-          >
-            <Image
-              src="/icons/align.svg"
-              alt="align icon"
-              width={24}
-              height={24}
-            />
-            <Image
-              src="/icons/corner.svg"
-              alt="corner icon"
-              width={12}
-              height={12}
-              style={styles.corner}
-            />
-          </Button>
-        </span>
+    <TooltipProvider delayDuration={ENTER_DELAY}>
+      <Tooltip>
+        <DropdownMenu modal={false}>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={isDisabled}
+                className=" rounded-none border-y border-r border-gray-300"
+              >
+                <Image
+                  src="/icons/align.svg"
+                  alt="align icon"
+                  width={24}
+                  height={24}
+                />
+                <Image
+                  src="/icons/corner.svg"
+                  alt="corner icon"
+                  width={12}
+                  height={12}
+                  className="absolute bottom-0.5 right-0.5"
+                />
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">对齐</TooltipContent>
+          <DropdownMenuContent className="mt-2">
+            <DropdownMenuItem onClick={updateStyle("hStart")}>
+              左对齐
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={updateStyle("hCenter")}>
+              水平居中
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={updateStyle("hEnd")}>
+              右对齐
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={updateStyle("vStart")}>
+              上对齐
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={updateStyle("vCenter")}>
+              垂直居中
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={updateStyle("vEnd")}>
+              下对齐
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </Tooltip>
-    </div>
+    </TooltipProvider>
   );
-});
+};
 
 export default Align;

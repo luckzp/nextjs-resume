@@ -1,67 +1,29 @@
 "use client";
-import React, { useState } from "react";
-import { styled } from "@mui/material/styles";
-import Button from "@mui/material/Button";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-import Tooltip from "@mui/material/Tooltip";
+import React from "react";
 import Image from "next/image";
-import { observer } from "mobx-react-lite";
-import { useStore } from "../../stores";
-
-import { ENTER_DELAY, LEAVE_DELAY, STORAGE_LAYOUT } from "../../utils/constant";
+import { useNavbarStore, useHintStore } from "../../stores";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuPortal,
+} from "@/components/ui/dropdown-menu";
+import { STORAGE_LAYOUT } from "../../utils/constant";
 import { downloadFile } from "../../utils/helper";
 
-const StyledButton = styled(Button)(({ theme }) => ({
-  padding: "0px 10px",
-  height: "100%",
-  width: "200px",
-}));
-
-const StyledMenu = styled(Menu)({
-  "& .MuiPaper-root": {
-    top: "40px !important",
-  },
-});
-
-const StyledMenuItem = styled(MenuItem)({
-  fontSize: "0.95em",
-});
-
-const InputLabel = styled("label")({
-  width: "100%",
-  height: "100%",
-});
-
-const HiddenInput = styled("input")({
-  display: "none",
-});
-
 const Export: React.FC = () => {
-  const { navbar, hint } = useStore();
-  const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(
-    null,
-  );
-  const exportOpen = Boolean(exportAnchorEl);
-
-  const openModeMenu = (event: React.MouseEvent<HTMLElement>) => {
-    event.stopPropagation();
-    setExportAnchorEl(event.currentTarget);
-  };
-
-  const closeModeMenu = (event: React.MouseEvent<HTMLElement>) => {
-    event.stopPropagation();
-    setExportAnchorEl(null);
-  };
+  const { setExported, isExported } = useNavbarStore();
+  const { setSuccess } = useHintStore();
 
   const handleExport = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
     console.log("Export button clicked, setting isExported to true");
-    navbar.setExported(true);
-    console.log("isExported set to:", navbar.isExported);
-    setExportAnchorEl(null);
+    setExported(true);
+    console.log("isExported set to:", isExported);
 
-    hint.setSuccess({
+    setSuccess({
       isOpen: true,
       message: "正在导出为PDF...",
     });
@@ -74,12 +36,11 @@ const Export: React.FC = () => {
       const filename = `markdown-resume-${new Date().getTime()}.json`;
       downloadFile(filename, layout);
 
-      hint.setSuccess({
+      setSuccess({
         isOpen: true,
         message: "已保存到本地",
       });
     }
-    setExportAnchorEl(null);
   };
 
   const importFromLocal = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,58 +55,39 @@ const Export: React.FC = () => {
       };
       fileReader.readAsText(file);
     }
-    setExportAnchorEl(null);
-  };
-
-  const openHelpDialog = (event: React.MouseEvent<HTMLElement>) => {
-    event.stopPropagation();
-    // Display help information using the hint store
-    hint.setSuccess({
-      isOpen: true,
-      message: "帮助信息已显示",
-    });
-    setExportAnchorEl(null);
   };
 
   return (
-    <>
-      <Tooltip
-        title="导入导出"
-        placement="bottom"
-        enterDelay={ENTER_DELAY}
-        leaveDelay={LEAVE_DELAY}
-      >
-        <StyledButton onClick={openModeMenu}>
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="relative h-full w-[100px] px-2.5">
           导入导出
-          <div style={{ position: "absolute", bottom: 2, right: 2 }}>
+          <div className="absolute bottom-0.5 right-0.5">
             <Image src="/icons/corner.svg" alt="logo" width={10} height={10} />
           </div>
-        </StyledButton>
-      </Tooltip>
+        </Button>
+      </DropdownMenuTrigger>
 
-      <StyledMenu
-        id="export-menu"
-        anchorEl={exportAnchorEl}
-        open={exportOpen}
-        onClose={closeModeMenu}
-        disableScrollLock={true}
-      >
-        <StyledMenuItem style={{ display: "none" }} />
-        <StyledMenuItem onClick={handleExport}>导出PDF</StyledMenuItem>
-        <StyledMenuItem onClick={saveToLocal}>保存到本地</StyledMenuItem>
-        <StyledMenuItem>
-          <InputLabel htmlFor="import-file-input">从本地导入</InputLabel>
-          <HiddenInput
-            accept="application/json"
-            id="import-file-input"
-            type="file"
-            onChange={importFromLocal}
-          />
-        </StyledMenuItem>
-        <StyledMenuItem onClick={openHelpDialog}>帮助</StyledMenuItem>
-      </StyledMenu>
-    </>
+      <DropdownMenuPortal>
+        <DropdownMenuContent align="start" className="mt-1 text-[0.95em]">
+          <DropdownMenuItem onClick={handleExport}>导出PDF</DropdownMenuItem>
+          <DropdownMenuItem onClick={saveToLocal}>保存到本地</DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <label className="flex w-full cursor-pointer items-center rounded-sm px-2 py-1.5 text-sm outline-none">
+              从本地导入
+              <input
+                className="hidden"
+                accept="application/json"
+                id="import-file-input"
+                type="file"
+                onChange={importFromLocal}
+              />
+            </label>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenuPortal>
+    </DropdownMenu>
   );
 };
 
-export default observer(Export);
+export default Export;

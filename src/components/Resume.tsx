@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import { observer } from "mobx-react-lite";
+import React, { useEffect, useRef, useState } from "react";
 import classNames from "classnames";
-import GridLayout, { Layout } from "react-grid-layout";
+import dynamic from "next/dynamic";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import MarkdownIt from "markdown-it";
@@ -11,116 +10,13 @@ import MarkdownIt from "markdown-it";
 import MarkdownItIns from "markdown-it-ins";
 // @ts-ignore
 import MarkdownItMark from "markdown-it-mark";
-import { makeStyles } from "@mui/styles";
 import { DATA_MARKDOWN } from "../utils/constant";
 import { parseMarkdown } from "../utils/helper";
-import { useStore } from "../stores";
-import THEME1 from "../utils/theme1";
+import useResumeStore from "../stores/ResumeStore";
+import useNavbarStore from "../stores/NavbarStore";
 
-// Define the CSS styles for the component
-const useStyles = makeStyles(() => ({
-  hStart: {
-    justifyContent: "flex-start",
-  },
-  hCenter: {
-    justifyContent: "center",
-  },
-  hEnd: {
-    justifyContent: "flex-end",
-  },
-  vStart: {
-    alignItems: "flex-start",
-  },
-  vCenter: {
-    alignItems: "center",
-  },
-  vEnd: {
-    alignItems: "flex-end",
-  },
-  layout: {
-    width: "188mm",
-    // height: "200vh",
-    // margin: "16mm 11mm",
-    "& div": {
-      display: "flex",
-      flexDirection: "column-reverse",
-      "& mark": {
-        color: "rgb(70,140,212)",
-        backgroundColor: "rgba(0,0,0,0)",
-        "& hr": {
-          height: "100%",
-          border: "0",
-          color: "black",
-          margin: 0,
-        },
-      },
-      "& ins": {
-        textDecoration: "none",
-        width: "100%",
-        "& hr": {
-          width: "100%",
-          border: "0",
-          color: "black",
-          margin: 0,
-        },
-      },
-      "& section": {
-        height: "100%",
-        display: "flex",
-        fontSize: "3.8mm",
-        lineHeight: "24px",
-        overflow: "hidden",
-        width: "100%",
-      },
-      "& h1": {
-        margin: "0",
-        fontSize: "7mm",
-      },
-      "& h2": {
-        margin: "0",
-        fontSize: "4mm",
-        fontWeight: "bold",
-      },
-      "& p": {
-        fontSize: "3.8mm",
-        margin: "0",
-        lineHeight: "24px",
-      },
-      "& a": {
-        fontSize: "3.8mm",
-        textDecoration: "none",
-        fontWeight: "bold",
-      },
-      "& strong": {
-        width: "100%",
-      },
-      "& blockquote": {
-        margin: "0",
-        "&:before": {
-          content: "''" /*CSS伪类用法*/,
-          position: "absolute" /*定位背景横线的位置*/,
-          bottom: "-1px",
-          background: "#494949" /*宽和高做出来的背景横线*/,
-          width: "100%",
-          height: "1px",
-        },
-      },
-      "& ul": {
-        fontSize: "3.8mm",
-        margin: "0",
-        paddingInlineStart: "20px",
-        lineHeight: "24px",
-        width: "100%",
-      },
-      "& code": {
-        width: "100%",
-      },
-      "& img": {
-        width: "100%",
-      },
-    },
-  },
-}));
+// Dynamically import GridLayout with SSR disabled
+const GridLayout = dynamic(() => import("react-grid-layout"), { ssr: false });
 
 // Define the LayoutItem type to match the ResumeStore
 interface LayoutItem {
@@ -132,11 +28,27 @@ interface LayoutItem {
   h: number;
 }
 
-const Resume = observer(() => {
-  const classes = useStyles();
-  const { resume, navbar } = useStore();
+const Resume = () => {
+  // 使用选择器函数获取需要监听的具体状态，而不是整个对象
+  const layout = useResumeStore((state) => state.layout);
+  const status = useResumeStore((state) => state.status);
+  const isAdded = useResumeStore((state) => state.isAdded);
+  const choosenKey = useResumeStore((state) => state.choosenKey);
+
+  // 获取需要的 navbar 状态
+  const setBtnDisable = useNavbarStore((state) => state.setBtnDisable);
+
+  // 保留对完整 store 的引用，用于调用方法
+  const resume = useResumeStore();
+  const navbar = useNavbarStore();
+
   const mdRef = useRef<MarkdownIt | null>(null);
 
+  // 在组件顶部添加状态
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState<string>("");
+
+  // Initialize markdown instance and resume
   useEffect(() => {
     if (!mdRef.current) {
       const md = new MarkdownIt();
@@ -144,79 +56,28 @@ const Resume = observer(() => {
       md.use(MarkdownItMark);
       mdRef.current = md;
     }
-  }, []);
 
-  // Initialize the resume store when the component mounts
-  useEffect(() => {
-    // 只在客户端运行
-    if (typeof window === "undefined") return;
+    resume.initialize();
+    return () => {};
+  }, []); // Run only once on mount
 
-    // 如果当前布局为空，尝试初始化
-    if (resume.layout.length === 0 && !resume.initialized) {
-      resume.initialize();
-    }
-  }, [resume]);
-
+  // Handle style switching separately
   useEffect(() => {
     if (resume.isAdded) {
-      resume.switchStyle(resume.choosenKey, true);
+      resume.switchStyle(choosenKey, true);
     }
-  }, [resume.isAdded, resume.choosenKey, resume]);
-
-  // Set up style rules for theme colors when the component renders
-  useEffect(() => {
-    if (typeof document !== "undefined" && document.styleSheets[0]?.rules) {
-      const styleSheet = document.styleSheets[0];
-
-      // Safely update styles with type checking
-      const updateStyle = (index: number, props: Record<string, string>) => {
-        const rule = styleSheet.rules[index] as CSSStyleRule;
-        if (rule?.style) {
-          Object.entries(props).forEach(([key, value]) => {
-            rule.style.setProperty(key, value);
-          });
-        }
-      };
-
-      // Main text color
-      updateStyle(0, { color: navbar.themeColor });
-
-      // Thick horizontal lines
-      updateStyle(1, { "background-color": navbar.themeColor, height: "3px" });
-      updateStyle(2, { "background-color": "black", height: "3px" });
-
-      // Thin horizontal lines
-      updateStyle(3, { "background-color": navbar.themeColor, height: "1px" });
-      updateStyle(4, { "background-color": "black", height: "1px" });
-
-      // Thick vertical lines
-      updateStyle(5, { "background-color": navbar.themeColor, width: "3px" });
-      updateStyle(6, { "background-color": "black", width: "3px" });
-
-      // Thin vertical lines
-      updateStyle(7, { "background-color": navbar.themeColor, width: "1px" });
-      updateStyle(8, { "background-color": "black", width: "1px" });
-
-      // Link underline
-      updateStyle(9, {
-        "border-bottom": `1px solid ${navbar.themeColor}`,
-        color: navbar.themeColor,
-      });
-    }
-  }, [navbar.themeColor]);
+  }, [resume.isAdded, choosenKey]);
 
   const handleClick = (event: React.MouseEvent) => {
-    // Prevent event bubbling first to avoid multiple triggers
-    console.log(" resume handleClick");
+    console.log("handleClick");
     event.stopPropagation();
 
     const target = event.target as HTMLElement;
 
-    // Get the ID directly or from parent (more efficient approach)
+    // 获取 ID
     let currentElement: HTMLElement | null = target;
     let id = "";
 
-    // Find the closest element with an ID (more efficient DOM traversal)
     while (currentElement && !id) {
       if (currentElement.id) {
         id = currentElement.id;
@@ -224,65 +85,32 @@ const Resume = observer(() => {
       currentElement = currentElement.parentElement;
     }
 
-    // If no ID found or it's the same as current chosen key, or we're in resize mode, do nothing
-    if (!id || id === resume.choosenKey || resume.status.isResizable) {
+    // 如果无 ID 或与当前选中键相同，或在调整大小模式下，不执行操作
+    if (!id || id === choosenKey || status.isResizable) {
       return;
     }
 
-    // Handle previous selected element (if any)
-    if (resume.choosenKey) {
-      handleBlur();
-      // Only update resume if really needed
+    // 处理之前选中的元素
+    if (choosenKey) {
       resume.updateResume();
     }
 
-    // Update state only if necessary
-    if (id !== resume.choosenKey) {
-      resume.setChoosen(id);
-      navbar.setBtnDisable(false);
-    }
+    // 进入编辑模式
+    resume.setChoosen(id);
+    navbar.setBtnDisable(false);
 
-    // Handle the newly selected element
+    // 获取markdown文本并设置到状态
     const cur = document.getElementById(id);
     if (cur) {
-      // Use a single render cycle for all DOM changes
-      requestAnimationFrame(() => {
-        cur.contentEditable = "true";
-        cur.focus();
-        if (cur.childNodes[0]) {
-          const markdownText = cur.getAttribute(DATA_MARKDOWN) || "";
-          (cur.childNodes[0] as HTMLElement).innerText = markdownText;
-        }
-      });
+      cur.focus();
+      const markdownText = cur.getAttribute(DATA_MARKDOWN) || "";
+      setEditingId(id);
+      setEditingText(markdownText);
     }
-  };
-
-  const handleBlur = () => {
-    const id = resume.choosenKey;
-    if (!id) return;
-
-    const element = document.getElementById(id);
-    if (!element) return;
-
-    // 获取当前的 Markdown 内容
-    const markdownText = element.innerText;
-    element.setAttribute(DATA_MARKDOWN, markdownText);
-
-    // 渲染 Markdown 效果
-    if (navbar.isMarkdownMode) {
-      const [html, align] = parseMarkdown(markdownText);
-      const firstChild = element.firstChild as HTMLElement;
-      if (firstChild) {
-        firstChild.innerHTML = html;
-      }
-    }
-
-    // 设置为不可编辑
-    element.contentEditable = "false";
   };
 
   const handleInput = () => {
-    const id = resume.choosenKey;
+    const id = choosenKey;
     if (id) {
       const cur = document.getElementById(id);
       if (cur) {
@@ -293,26 +121,26 @@ const Resume = observer(() => {
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    const id = resume.choosenKey;
-    if (!id) return;
+    // Get current element and its text content
+    console.log("handleKeyDown");
+    if (editingId) {
+      const cur = document.getElementById(editingId);
+      if (cur) {
+        const value =
+          cur.querySelector("section")?.innerText.replace(/[\r\n]/g, "") || "";
 
-    const cur = document.getElementById(id);
-    if (!cur) return;
+        // Prevent deleting HTML structure when content is empty and backspace is pressed
+        if (event.key === "Backspace" && value === "") {
+          event.preventDefault();
+        }
 
-    const value = cur.childNodes[0]
-      ? (cur.childNodes[0] as HTMLElement).innerText.replace(/[\r\n]/g, "")
-      : "";
-
-    // Prevent backspace from deleting HTML when value is empty
-    if (event.key === "Backspace" && value === "") {
-      event.preventDefault();
-    }
-
-    // On Enter, trigger blur effect to render markdown
-    if (event.key === "Enter") {
-      handleBlur();
-      resume.updateResume();
-      navbar.setBtnDisable(true);
+        // 在编辑模式下处理Enter键
+        if (event.key === "Enter") {
+          console.log("enter");
+          resume.updateResume();
+          navbar.setBtnDisable(true);
+        }
+      }
     }
   };
 
@@ -323,79 +151,79 @@ const Resume = observer(() => {
     document.execCommand("insertHTML", false, text);
   };
 
-  // Save layout changes in real time
   const handleLayoutChange = (layout: LayoutItem[]) => {
     resume.updateLayout(layout);
   };
 
   // Render grid items - use useMemo to prevent unnecessary recalculations
   const listItems = React.useMemo(() => {
-    return resume.layout.map((item) => {
-      // Ensure item.value is a string before passing to parseMarkdown
+    return layout.map((item) => {
       const itemValue = item.value ?? "";
       const [html, align] = parseMarkdown(itemValue);
 
       const sectionClassName = classNames({
-        [classes.hStart]: align.hStart,
-        [classes.hCenter]: align.hCenter,
-        [classes.hEnd]: align.hEnd,
-        [classes.vStart]: align.vStart,
-        [classes.vCenter]: align.vCenter,
-        [classes.vEnd]: align.vEnd,
+        "justify-start": align.hStart,
+        "justify-center": align.hCenter,
+        "justify-end": align.hEnd,
+        "items-start": align.vStart,
+        "items-center": align.vCenter,
+        "items-end": align.vEnd,
       });
+
+      // 判断是否在编辑模式
+      const isEditing = editingId === item.i;
 
       return (
         <div
           id={item.i}
           key={item.i}
           data-markdown={item.value}
-          onClick={(e) => {
-            handleClick(e);
-          }}
-          onKeyDown={handleKeyDown}
+          onClick={handleClick}
           onPaste={handlePaste}
           onInput={handleInput}
-          onBlur={handleBlur}
-          style={resume.status.gridStyle}
+          onKeyDown={handleKeyDown}
+          style={status.gridStyle}
+          className="resume-content"
           suppressContentEditableWarning={true}
         >
-          <section
-            className={sectionClassName}
-            dangerouslySetInnerHTML={{ __html: html }}
-          />
+          {isEditing ? (
+            // 编辑模式显示纯文本输入框
+            <section
+              className={`flex h-full w-full overflow-hidden text-[3.8mm] leading-6 ${sectionClassName}`}
+              suppressContentEditableWarning={true}
+            >
+              {editingText}
+            </section>
+          ) : (
+            // 预览模式显示渲染后的HTML
+            <section
+              className={`flex h-full w-full overflow-hidden text-[3.8mm] leading-6 ${sectionClassName}`}
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          )}
         </div>
       );
     });
-  }, [resume.layout, resume.status.gridStyle, classes]);
-
-  // 渲染备用内容，直到布局加载完成
-  if (resume.layout.length === 0) {
-    return (
-      <div className="flex h-full w-full items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 text-xl font-bold">正在加载简历模板...</div>
-          <p className="text-gray-500">这可能需要几秒钟时间</p>
-        </div>
-      </div>
-    );
-  }
+  }, [layout, status, choosenKey, editingId, editingText]); // 添加 status 作为依赖
 
   return (
-    <GridLayout
-      className={classes.layout}
-      layout={resume.layout}
-      cols={24}
-      rowHeight={22}
-      width={710}
-      margin={[10, 2]}
-      isResizable={resume.status.isResizable}
-      isDraggable={resume.status.isDraggable}
-      onLayoutChange={handleLayoutChange}
-    >
-      {listItems}
-    </GridLayout>
+    <>
+      <GridLayout
+        className="w-[188mm]"
+        layout={layout}
+        cols={24}
+        rowHeight={22}
+        width={710}
+        margin={[10, 2]}
+        isResizable={status.isResizable}
+        isDraggable={status.isDraggable}
+        onLayoutChange={handleLayoutChange}
+      >
+        {listItems}
+      </GridLayout>
+    </>
   );
-});
+};
 
 // Wrap the component with React.memo for extra performance
 export default Resume;

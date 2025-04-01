@@ -1,43 +1,33 @@
 "use client";
 
 import React from "react";
-import { Button, Tooltip } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import { observer } from "mobx-react-lite";
 import Image from "next/image";
 import * as cheerio from "cheerio";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import {
   ENTER_DELAY,
   LEAVE_DELAY,
   DATA_MARKDOWN,
   DATA_ORIGIN,
 } from "../../utils/constant";
-import { useStore } from "../../stores";
-
-// Define styled components using Material UI's styled API
-const ListButton = styled(Button)(({ theme }) => ({
-  padding: "6px 10px",
-  borderRadius: "0",
-  borderBottom: "1px solid #cccccc",
-  borderTop: "1px solid #cccccc",
-  borderRight: "1px solid #cccccc",
-  height: "100%",
-  minWidth: "auto",
-  "&.Mui-disabled": {
-    opacity: 0.3,
-  },
-}));
+import { useNavbarStore, useResumeStore } from "../../stores";
 
 const Li = () => {
-  const { navbar, resume } = useStore();
+  const { isDisabled, isMarkdownMode } = useNavbarStore();
+  const { choosenKey } = useResumeStore();
 
   /**
    * Updates the style based on the current mode (markdown or normal)
    */
   const updateStyle = (event: React.MouseEvent) => {
     event.stopPropagation();
-    const id = resume.choosenKey;
-    const { isMarkdownMode } = navbar;
+    const id = choosenKey;
 
     if (isMarkdownMode) {
       updateMarkdown(id);
@@ -110,28 +100,30 @@ const Li = () => {
   };
 
   return (
-    <Tooltip
-      title="列表"
-      placement="bottom"
-      enterDelay={ENTER_DELAY}
-      leaveDelay={LEAVE_DELAY}
-      disableFocusListener
-    >
-      <span>
-        {" "}
-        {/* Wrapper to handle disabled button tooltip */}
-        <ListButton disabled={navbar.isDisabled} onClick={updateStyle}>
-          <Image
-            src="/icons/list.svg"
-            alt="列表"
-            width={24}
-            height={24}
-            priority
-          />
-        </ListButton>
-      </span>
-    </Tooltip>
+    <TooltipProvider delayDuration={ENTER_DELAY}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            className=" rounded-none border-y border-l-0 border-r border-[#cccccc] p-[6px_10px] disabled:opacity-30"
+            disabled={isDisabled}
+            onClick={updateStyle}
+          >
+            <Image
+              src="/icons/list.svg"
+              alt="列表"
+              width={24}
+              height={24}
+              priority
+            />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent sideOffset={5}>
+          <p>列表</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 
-export default observer(Li);
+export default Li;

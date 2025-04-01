@@ -1,4 +1,6 @@
+import "@/styles/index.css";
 import "@/styles/globals.css";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata = {
   title: "简历生成器",
@@ -16,7 +18,10 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

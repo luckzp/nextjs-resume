@@ -1,0 +1,56 @@
+/* 设置主题色用 */
+code {
+  color: black;
+}
+
+/* hr nested inside ins nested inside code nested inside strong */
+strong > code > ins > hr {
+  background-color: black;
+  height: 3px;
+}
+
+/* hr nested inside ins nested inside strong */
+strong > ins > hr {
+  background-color: black;
+  height: 3px;
+}
+
+/* hr nested inside ins nested inside code */
+code > ins > hr {
+  background-color: black;
+  height: 3px;
+}
+
+/* hr nested inside ins */
+ins > hr {
+  background-color: black;
+  height: 3px;
+}
+
+/* hr nested inside mark nested inside code nested inside strong */
+strong > code > mark > hr {
+  background-color: black;
+  height: 3px;
+}
+
+/* hr nested inside mark nested inside strong */
+strong > mark > hr {
+  background-color: black;
+  height: 3px;
+}
+
+/* hr nested inside mark nested inside code */
+code > mark > hr {
+  background-color: black;
+  height: 3px;
+}
+
+/* hr nested inside mark */
+mark > hr {
+  background-color: black;
+  height: 3px;
+}
+
+a {
+  border-bottom: 1px solid;
+}

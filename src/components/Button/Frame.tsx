@@ -1,9 +1,13 @@
 "use client";
 
 import React from "react";
-import { Button, Tooltip } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import { observer } from "mobx-react-lite";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import Image from "next/image";
 import {
   COLOR_RESIZABLE,
@@ -11,68 +15,61 @@ import {
   ENTER_DELAY,
   LEAVE_DELAY,
 } from "../../utils/constant";
-import { useStore } from "../../stores";
-
-// Define styled components using @mui/material's styled API
-const FrameButton = styled(Button, {
-  shouldForwardProp: (prop) => prop !== "isActive",
-})<{ isActive?: boolean }>(({ theme, isActive }) => ({
-  padding: "6px 10px",
-  border: "1px solid #cccccc",
-  borderRadius: "0",
-  borderTopLeftRadius: "3px",
-  borderBottomLeftRadius: "3px",
-  height: "100%",
-  minWidth: "auto",
-  ...(isActive && {
-    background: "rgba(56,132,255,.1)",
-  }),
-}));
+import useResumeStore from "../../stores/ResumeStore";
+import useNavbarStore from "../../stores/NavbarStore";
 
 const Frame = () => {
-  const { navbar, resume } = useStore();
+  const isMarkdownMode = useNavbarStore((state) => state.isMarkdownMode);
+  const status = useResumeStore((state) => state.status);
+  const setStatus = useResumeStore((state) => state.setStatus);
 
   const toggleStatus = (event: React.MouseEvent) => {
     event.stopPropagation();
-    const { isMarkdownMode } = navbar;
 
     // Toggle the resizable state
-    if (resume.status.isResizable) {
-      const status = {
+    if (status.isResizable) {
+      const newStatus = {
         gridStyle: { background: COLOR_NORMAL },
         isResizable: false,
         isDraggable: false,
       };
-      resume.setStatus(status, isMarkdownMode);
+      setStatus(newStatus, isMarkdownMode);
     } else {
-      const status = {
+      const newStatus = {
         gridStyle: { background: COLOR_RESIZABLE },
         isResizable: true,
         isDraggable: true,
       };
-      resume.setStatus(status, isMarkdownMode);
+      setStatus(newStatus, isMarkdownMode);
     }
   };
 
   return (
-    <Tooltip
-      title="排版"
-      placement="bottom"
-      enterDelay={ENTER_DELAY}
-      leaveDelay={LEAVE_DELAY}
-      disableFocusListener
-    >
-      <FrameButton isActive={resume.status.isResizable} onClick={toggleStatus}>
-        <Image
-          src="/icons/frame.svg"
-          alt="排版"
-          width={24}
-          height={24}
-          priority
-        />
-      </FrameButton>
-    </Tooltip>
+    <TooltipProvider delayDuration={ENTER_DELAY}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            className={` rounded-none rounded-l-sm border border-[#cccccc] px-2.5 py-1.5 ${
+              status.isResizable ? "bg-[rgba(56,132,255,.1)]" : ""
+            }`}
+            onClick={toggleStatus}
+          >
+            <Image
+              src="/icons/frame.svg"
+              alt="排版"
+              width={24}
+              height={24}
+              priority
+            />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>排版</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 
-export default observer(Frame);
+export default Frame;

@@ -1,6 +1,6 @@
 'use client';
 
-import { makeAutoObservable } from 'mobx';
+import { create } from 'zustand';
 
 interface ErrorState {
   isOpen: boolean;
@@ -12,33 +12,34 @@ interface SuccessState {
   message: string;
 }
 
+interface HintState {
+  error: ErrorState;
+  success: SuccessState;
+  setSuccess: (success: Partial<SuccessState>) => void;
+  setError: (error: Partial<ErrorState>) => void;
+}
+
 /**
  * Store for managing feedback messages (error and success hints)
  */
-class HintStore {
-  error: ErrorState = {
+const useHintStore = create<HintState>((set) => ({
+  error: {
     isOpen: false,
     message: "操作出错"
-  };
+  },
   
-  success: SuccessState = {
+  success: {
     isOpen: false,
     message: "操作成功"
-  };
+  },
 
-  constructor() {
-    makeAutoObservable(this);
-  }
+  setSuccess: (success) => set((state) => ({
+    success: { ...state.success, ...success }
+  })),
 
-  setSuccess = (success: Partial<SuccessState>) => {
-    this.success = Object.assign({}, this.success, success);
-  };
+  setError: (error) => set((state) => ({
+    error: { ...state.error, ...error }
+  }))
+}));
 
-  setError = (error: Partial<ErrorState>) => {
-    this.error = Object.assign({}, this.error, error);
-  };
-}
-
-// Create and export a store instance
-const store = new HintStore();
-export default store;
+export default useHintStore;
