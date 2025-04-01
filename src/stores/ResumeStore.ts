@@ -270,29 +270,43 @@ const useResumeStore = create<ResumeState>((set, get) => ({
   },
 
   initialize: () => {
+    // 首先检查localStorage中是否有保存的布局数据
+    const savedLayout = window.localStorage.getItem(STORAGE_LAYOUT);
+    
+    if (savedLayout) {
+      try {
+        // 尝试解析存储的布局数据
+        const parsedLayout = JSON.parse(savedLayout) as LayoutItem[];
+        console.log('从localStorage加载布局数据，包含', parsedLayout.length, '个项目');
+        set({ layout: parsedLayout, count: parsedLayout.length });
+        return;
+      } catch (error) {
+        console.error('解析localStorage布局数据失败:', error);
+        // 解析失败时继续使用默认布局
+      }
+    }
 
-        // 清空当前布局
-        const newLayout: LayoutItem[] = [];
-
-          
-          LAYOUT.forEach((item, index) => {
-
-            newLayout.push({
-              i: item.i,
-              x: typeof item.x === 'number' ? item.x : 0,
-              y: typeof item.y === 'number' ? item.y : 0,
-              w: typeof item.w === 'number' ? item.w : 4,
-              h: typeof item.h === 'number' ? item.h : 2,
-              value: typeof item.value === 'string' ? item.value : "",
-              origin: typeof item.origin === 'string' ? item.origin : "",
-              moved: Boolean(item.moved),
-              static: Boolean(item.static)
-            });
-          });
-          
-          console.log('新布局数据已准备好，包含', newLayout.length, '个项目');
-          
+    // 如果没有localStorage数据或解析失败，则使用默认布局
+    const newLayout: LayoutItem[] = [];
+      
+    LAYOUT.forEach((item, index) => {
+      newLayout.push({
+        i: item.i,
+        x: typeof item.x === 'number' ? item.x : 0,
+        y: typeof item.y === 'number' ? item.y : 0,
+        w: typeof item.w === 'number' ? item.w : 4,
+        h: typeof item.h === 'number' ? item.h : 2,
+        value: typeof item.value === 'string' ? item.value : "",
+        origin: typeof item.origin === 'string' ? item.origin : "",
+        moved: Boolean(item.moved),
+        static: Boolean(item.static)
+      });
+    });
+    
+    console.log('使用默认布局数据，包含', newLayout.length, '个项目');
+    
     set({ layout: newLayout, count: newLayout.length });
+    window.localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(newLayout));
   },
 }));
 

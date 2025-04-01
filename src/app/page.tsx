@@ -84,7 +84,7 @@ const HomePage = () => {
           border: isExported ? "none" : "1px solid black",
           boxShadow: isExported ? "none" : "0px 0px 4px",
           margin: isExported ? "0px auto" : "80px auto",
-          padding: isExported ? "0mm" : "16mm 11mm",
+          padding: isExported ? "16mm 11mm" : "16mm 11mm",
         }}
         onClick={handleWindowClick}
       >

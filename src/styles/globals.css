@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
-
-    
-
 .hStart {
   justify-content: flex-start;
 }
@@ -168,51 +164,6 @@ code {
   box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
 }
 
-/* Print styles */
-@media print {
-  body {
-    background: white !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-  
-  /* Hide all elements except the resume */
-  main > div:not(:nth-child(2)) {
-    display: none !important;
-  }
-  
-  /* Format the resume container for printing */
-  main > div:nth-child(2) {
-    margin: 0 auto !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-    border: none !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-    position: relative !important;
-    page-break-inside: avoid !important;
-  }
-  
-  /* Make sure all content in the resume is visible */
-  main > div:nth-child(2) > div {
-    display: block !important;
-    page-break-inside: avoid !important;
-  }
-  
-  /* Hide scrollbars when printing */
-  ::-webkit-scrollbar {
-    display: none !important;
-  }
-  
-  /* Hide hint dialog during print */
-  [role="dialog"] {
-    display: none !important;
-  }
-}
 
 @layer base {
   :root {
