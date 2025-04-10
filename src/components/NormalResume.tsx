@@ -114,8 +114,8 @@ const NormalResume: React.FC = () => {
 
   // Handle newly added grid item styling
   useEffect(() => {
-    if (resume.isAdded) {
-      const id = resume.choosenKey;
+    if (isAdded) {
+      const id = choosenKey;
       const element = document.getElementById(id);
       if (!element) return;
 
@@ -130,7 +130,7 @@ const NormalResume: React.FC = () => {
       resume.switchStyle(id, true);
       resume.setAdded(false);
     }
-  }, [resume.isAdded]);
+  }, [isAdded, choosenKey]);
 
   return (
     <GridLayout

@@ -13,6 +13,30 @@ import {
 // 直接导入LAYOUT，它是THEME1的默认导出
 import LAYOUT from "../utils/theme1";
 
+// Helper function to compare layout items based on their 'i' property
+const compare = (pro: keyof LayoutItem) => {
+  return function(obj1: LayoutItem, obj2: LayoutItem) {
+    const val1 = obj1[pro];
+    const val2 = obj2[pro];
+    // Ensure values are strings before splitting
+    if (typeof val1 !== 'string' || typeof val2 !== 'string') {
+      // Handle cases where 'i' might not be a string as expected
+      // You might want to return 0 or throw an error depending on desired behavior
+      console.warn("Attempted to compare non-string 'i' properties:", val1, val2);
+      return 0;
+    }
+    const arr1 = val1.split(MARK);
+    const arr2 = val2.split(MARK);
+    // Add checks for successful split and numeric parsing
+    const num1 = parseInt(arr1[1]);
+    const num2 = parseInt(arr2[1]);
+    if (isNaN(num1) || isNaN(num2)) {
+      console.warn("Could not parse numeric part of 'i' property for comparison:", val1, val2);
+      return 0; // Or handle error appropriately
+    }
+    return num1 - num2;
+  };
+};
 
 // Define Resume store types
 type Status = {
@@ -50,20 +74,10 @@ interface ResumeState {
   addGrid: (isMarkdownMode: boolean) => void;
   removeGrid: () => void;
   switchLayout: (unsortLayout: any[]) => void;
+  calcLayout: (unsortLayout: LayoutItem[]) => [LayoutItem[], number];
   initialize: () => void;
 }
 
-// Helper function to get element position and dimensions
-const getElementLayout = (element: Element): { x: number, y: number, w: number, h: number } => {
-  const rect = element.getBoundingClientRect();
-  // Convert to grid coordinates (approximate)
-  return {
-    x: Math.round(rect.left / 30), // Approximation
-    y: Math.round(rect.top / 22),  // Assuming rowHeight is 22
-    w: Math.max(1, Math.round(rect.width / 30)), // Minimum width of 1
-    h: Math.max(1, Math.round(rect.height / 22)) // Minimum height of 1
-  };
-};
 
 const useResumeStore = create<ResumeState>((set, get) => ({
   choosenKey: "",
@@ -75,6 +89,36 @@ const useResumeStore = create<ResumeState>((set, get) => ({
     gridStyle: { background: COLOR_NORMAL },
   },
   count: 0,
+
+  // Add the calcLayout function implementation
+  calcLayout: (unsortLayout) => {
+    if (!unsortLayout || unsortLayout.length === 0) {
+      return [[], 0];
+    }
+    // Ensure the input is actually LayoutItem[] before sorting
+    const layout = [...unsortLayout].sort(compare("i"));
+    const len = layout.length;
+    let count = 0;
+    if (len > 0) {
+      const lastItemI = layout[len - 1]?.i;
+      if (typeof lastItemI === 'string') {
+         const parts = lastItemI.split(MARK);
+         const lastNum = parseInt(parts[1]);
+         if (!isNaN(lastNum)) {
+            count = lastNum + 1;
+         } else {
+            console.warn("Could not parse count from last item's 'i':", lastItemI);
+            // Fallback or error handling if needed
+            count = len; // Example fallback
+         }
+      } else {
+         console.warn("Last item's 'i' is not a string:", lastItemI);
+         // Fallback or error handling
+         count = len; // Example fallback
+      }
+    }
+    return [layout, count];
+  },
 
   setAdded: (isAdded) => set({ isAdded }),
 
@@ -236,28 +280,25 @@ const useResumeStore = create<ResumeState>((set, get) => ({
   },
 
   switchLayout: (unsortLayout) => {
+    const state = get(); // Get the current state including calcLayout
 
     window.localStorage.removeItem(STORAGE_LAYOUT);
 
+    // Use calcLayout to sort and get the count
+    const [newLayout, newCount] = state.calcLayout(unsortLayout as LayoutItem[]); // Cast might be needed depending on input `any[]`
 
-    // Calculate new count based on layout items
-    const newCount = unsortLayout.length;
+    // Ensure value and origin properties exist
+    const processedLayout = newLayout.map(item => ({
+      ...item,
+      value: item.value || "",
+      origin: item.origin || ""
+    }));
 
-    // Process the layout
-    let newLayout = [];
-    if (unsortLayout.length > 0) {
-      newLayout = unsortLayout.map(item => ({
-        ...item,
-        value: item.value || "",
-        origin: item.origin || ""
-      }));
-    } 
-
+    state.setChoosen();
     // Update state
-    set({ 
-      layout: newLayout,
+    set({
+      layout: processedLayout,
       count: newCount,
-      choosenKey: "",
       status: {
         isResizable: false,
         isDraggable: false,
@@ -265,8 +306,7 @@ const useResumeStore = create<ResumeState>((set, get) => ({
       }
     });
 
-    window.localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(newLayout));
-    
+    window.localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(processedLayout));
   },
 
   initialize: () => {
@@ -278,7 +318,9 @@ const useResumeStore = create<ResumeState>((set, get) => ({
         // 尝试解析存储的布局数据
         const parsedLayout = JSON.parse(savedLayout) as LayoutItem[];
         console.log('从localStorage加载布局数据，包含', parsedLayout.length, '个项目');
-        set({ layout: parsedLayout, count: parsedLayout.length });
+        // Use calcLayout to ensure correct count and sorting from localStorage
+        const [sortedLayout, count] = get().calcLayout(parsedLayout);
+        set({ layout: sortedLayout, count: count });
         return;
       } catch (error) {
         console.error('解析localStorage布局数据失败:', error);
@@ -286,27 +328,13 @@ const useResumeStore = create<ResumeState>((set, get) => ({
       }
     }
 
-    // 如果没有localStorage数据或解析失败，则使用默认布局
-    const newLayout: LayoutItem[] = [];
-      
-    LAYOUT.forEach((item, index) => {
-      newLayout.push({
-        i: item.i,
-        x: typeof item.x === 'number' ? item.x : 0,
-        y: typeof item.y === 'number' ? item.y : 0,
-        w: typeof item.w === 'number' ? item.w : 4,
-        h: typeof item.h === 'number' ? item.h : 2,
-        value: typeof item.value === 'string' ? item.value : "",
-        origin: typeof item.origin === 'string' ? item.origin : "",
-        moved: Boolean(item.moved),
-        static: Boolean(item.static)
-      });
-    });
     
-    console.log('使用默认布局数据，包含', newLayout.length, '个项目');
-    
-    set({ layout: newLayout, count: newLayout.length });
-    window.localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(newLayout));
+
+    // Use calcLayout for the default layout as well
+    const [sortedDefaultLayout, defaultCount] = get().calcLayout(LAYOUT);
+
+    set({ layout: sortedDefaultLayout, count: defaultCount });
+    window.localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(sortedDefaultLayout));
   },
 }));
 
