@@ -22,9 +22,17 @@ const Change: React.FC = () => {
   const templateNum = useNavbarStore((state) => state.templateNum);
   const setTemplateNum = useNavbarStore((state) => state.setTemplateNum);
   const setChangeOpened = useDialogStore((state) => state.setChangeOpened);
+
   const handleTemplateSwitch = (value: number) => {
     setTemplateNum(value);
-    localStorage.setItem(TEMPLATE_NUM, value.toString());
+
+    // 保存数字索引形式，用于NavbarStore
+    localStorage.setItem("templateNumIndex", value.toString());
+
+    // 保存字符串ID形式，用于ResumeStore (theme0 是自定义，theme1-4 是预设模板)
+    const templateId = value === 0 ? "theme0" : `theme${value}`;
+    localStorage.setItem(TEMPLATE_NUM, templateId);
+
     setChangeOpened(true);
   };
 

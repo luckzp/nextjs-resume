@@ -35,7 +35,14 @@ const DialogChange = () => {
     console.log("theme", theme);
     if (theme) {
       switchLayout(theme);
-      window.localStorage.setItem(TEMPLATE_NUM, templateNum.toString());
+
+      // 保存数字索引形式，用于NavbarStore
+      window.localStorage.setItem("templateNumIndex", templateNum.toString());
+
+      // 保存字符串ID形式，用于ResumeStore (theme0 是自定义，theme1-4 是预设模板)
+      const templateId = templateNum === 0 ? "theme0" : `theme${templateNum}`;
+      window.localStorage.setItem(TEMPLATE_NUM, templateId);
+
       setSuccess({ isOpen: true, message: "切换模板成功" });
       setChangeOpened(false);
     }

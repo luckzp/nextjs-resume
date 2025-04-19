@@ -52,7 +52,7 @@
   }
 
   .resume-content h1 {
-    @apply m-0 text-[7mm];
+    @apply m-0 text-[7mm] font-bold;
   }
   
   .resume-content h1 p {

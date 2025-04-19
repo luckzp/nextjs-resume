@@ -8,10 +8,12 @@ import {
   MARK, 
   STORAGE_LAYOUT,
   DATA_MARKDOWN,
-  DATA_ORIGIN
+  DATA_ORIGIN,
+  TEMPLATE_NUM
 } from "../utils/constant";
 // 直接导入LAYOUT，它是THEME1的默认导出
 import LAYOUT from "../utils/theme1";
+import { getThemeLayout } from "../utils/themeLoader";
 
 // Helper function to compare layout items based on their 'i' property
 const compare = (pro: keyof LayoutItem) => {
@@ -28,8 +30,8 @@ const compare = (pro: keyof LayoutItem) => {
     const arr1 = val1.split(MARK);
     const arr2 = val2.split(MARK);
     // Add checks for successful split and numeric parsing
-    const num1 = parseInt(arr1[1]);
-    const num2 = parseInt(arr2[1]);
+    const num1 = parseInt(arr1[1] || '0');
+    const num2 = parseInt(arr2[1] || '0');
     if (isNaN(num1) || isNaN(num2)) {
       console.warn("Could not parse numeric part of 'i' property for comparison:", val1, val2);
       return 0; // Or handle error appropriately
@@ -63,6 +65,7 @@ interface ResumeState {
   layout: LayoutItem[];
   status: Status;
   count: number;
+  currentTemplateId: string;
   
   setAdded: (isAdded: boolean) => void;
   setChoosen: (key?: string) => void;
@@ -75,7 +78,7 @@ interface ResumeState {
   removeGrid: () => void;
   switchLayout: (unsortLayout: any[]) => void;
   calcLayout: (unsortLayout: LayoutItem[]) => [LayoutItem[], number];
-  initialize: () => void;
+  initialize: (templateId?: string) => void;
 }
 
 
@@ -89,6 +92,7 @@ const useResumeStore = create<ResumeState>((set, get) => ({
     gridStyle: { background: COLOR_NORMAL },
   },
   count: 0,
+  currentTemplateId: "",
 
   // Add the calcLayout function implementation
   calcLayout: (unsortLayout) => {
@@ -103,7 +107,7 @@ const useResumeStore = create<ResumeState>((set, get) => ({
       const lastItemI = layout[len - 1]?.i;
       if (typeof lastItemI === 'string') {
          const parts = lastItemI.split(MARK);
-         const lastNum = parseInt(parts[1]);
+         const lastNum = parseInt(parts[1] || '0');
          if (!isNaN(lastNum)) {
             count = lastNum + 1;
          } else {
@@ -309,18 +313,27 @@ const useResumeStore = create<ResumeState>((set, get) => ({
     window.localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(processedLayout));
   },
 
-  initialize: () => {
-    // 首先检查localStorage中是否有保存的布局数据
-    const savedLayout = window.localStorage.getItem(STORAGE_LAYOUT);
+  initialize: (templateId?: string) => {
+    // 如果传入了模板ID，优先使用传入的
+    const currentTemplateId = templateId || window.localStorage.getItem(TEMPLATE_NUM) || 'theme1';
     
-    if (savedLayout) {
+    // 首先检查localStorage中是否有保存的布局数据，并且确认模板ID匹配
+    const savedLayout = window.localStorage.getItem(STORAGE_LAYOUT);
+    const savedTemplateId = window.localStorage.getItem(TEMPLATE_NUM);
+    
+    // 只有当没有指定模板ID，且localStorage中有保存的布局数据和模板ID时，才从localStorage加载
+    if (!templateId && savedLayout && savedTemplateId) {
       try {
         // 尝试解析存储的布局数据
         const parsedLayout = JSON.parse(savedLayout) as LayoutItem[];
-        console.log('从localStorage加载布局数据，包含', parsedLayout.length, '个项目');
+        console.log(`从localStorage加载模板 ${savedTemplateId} 布局数据，包含`, parsedLayout.length, '个项目');
         // Use calcLayout to ensure correct count and sorting from localStorage
         const [sortedLayout, count] = get().calcLayout(parsedLayout);
-        set({ layout: sortedLayout, count: count });
+        set({ 
+          layout: sortedLayout, 
+          count: count,
+          currentTemplateId: savedTemplateId
+        });
         return;
       } catch (error) {
         console.error('解析localStorage布局数据失败:', error);
@@ -328,12 +341,23 @@ const useResumeStore = create<ResumeState>((set, get) => ({
       }
     }
 
+    // 如果指定了模板ID或者localStorage中没有保存的布局数据，从配置文件加载默认布局
+    console.log(`从配置文件加载模板 ${currentTemplateId} 的默认布局`);
     
-
+    // 获取指定模板ID的默认布局
+    const themeLayout = getThemeLayout(currentTemplateId);
+    
     // Use calcLayout for the default layout as well
-    const [sortedDefaultLayout, defaultCount] = get().calcLayout(LAYOUT);
+    const [sortedDefaultLayout, defaultCount] = get().calcLayout(themeLayout);
 
-    set({ layout: sortedDefaultLayout, count: defaultCount });
+    set({ 
+      layout: sortedDefaultLayout, 
+      count: defaultCount,
+      currentTemplateId
+    });
+    
+    // 保存模板ID和布局到localStorage
+    window.localStorage.setItem(TEMPLATE_NUM, currentTemplateId);
     window.localStorage.setItem(STORAGE_LAYOUT, JSON.stringify(sortedDefaultLayout));
   },
 }));
